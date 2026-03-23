@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Mestre Builder</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold tracking-tight">PDF Mestre Builder</h1>
+      <p class="text-slate-400 mt-2">
+        Configure os buscadores da pesquisa, agrupe as fontes por lote e acompanhe status, progresso, pausa e parada em tempo real.
+      </p>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+        <label for="prompt" class="block text-sm font-medium text-slate-300 mb-2">
+          Prompt / Tema da busca
+        </label>
+
+        <textarea
+          id="prompt"
+          rows="5"
+          class="w-full rounded-xl bg-slate-950 border border-slate-700 text-slate-100 px-4 py-3 outline-none focus:border-cyan-400 resize-none"
+          placeholder="Ex: startups B2B em 2026 no Brasil"
+        ></textarea>
+
+        <div class="mt-4 grid gap-3 md:grid-cols-[1fr_170px_170px_170px]">
+          <input
+            id="maxResults"
+            type="number"
+            min="1"
+            max="50"
+            value="12"
+            class="rounded-xl bg-slate-950 border border-slate-700 text-slate-100 px-4 py-3 outline-none focus:border-cyan-400"
+          />
+
+          <button
+            id="generateBtn"
+            class="px-5 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold transition"
+          >
+            Adicionar Pesquisa
+          </button>
+
+          <a
+            id="downloadBtn"
+            href="#"
+            class="hidden px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold transition text-center"
+            download
+          >
+            Baixar PDF
+          </a>
+
+          <button
+            id="newWorkspaceBtn"
+            class="px-5 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold transition"
+          >
+            Novo Workspace
+          </button>
+        </div>
+
+        <div class="mt-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm text-slate-300">Uso do limite</span>
+            <span id="sizeText" class="text-sm font-medium text-cyan-300">0 MB / 100 MB</span>
+          </div>
+          <div class="w-full h-4 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+            <div id="progressBar" class="h-full w-0 bg-cyan-400 transition-all duration-300"></div>
+          </div>
+          <div class="mt-2 text-xs text-slate-400">
+            Limite de segurança operacional: 95MB
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <div class="text-sm text-slate-400">Status geral</div>
+            <div id="statusBadge" class="mt-2 inline-flex px-3 py-1 rounded-full text-sm font-medium bg-slate-800 text-slate-200">
+              Aguardando
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-sm text-slate-400">Fontes no PDF</div>
+            <div id="mergedCount" class="mt-2 text-2xl font-bold">0</div>
+          </div>
+        </div>
+
+        <div class="mt-6 rounded-2xl border border-slate-800 bg-slate-950 p-4">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm text-slate-400">Pesquisa atual</div>
+              <div id="activeSearchPrompt" class="mt-1 text-sm font-semibold text-slate-100">Nenhuma pesquisa ativa.</div>
+            </div>
+            <div id="activeSearchStatus" class="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-200">
+              Sem execução
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs text-slate-400">Progresso da pesquisa</span>
+              <span id="activeSearchPercent" class="text-xs font-medium text-cyan-300">0%</span>
+            </div>
+            <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+              <div id="activeSearchProgressBar" class="h-full w-0 bg-cyan-400 transition-all duration-300"></div>
+            </div>
+            <div id="activeSearchMeta" class="mt-2 text-xs text-slate-400">0 / 0 links processados</div>
+          </div>
+
+          <div class="mt-4 grid gap-2 sm:grid-cols-3">
+            <button id="pauseBtn" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              Pausar
+            </button>
+            <button id="resumeBtn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              Retomar
+            </button>
+            <button id="stopBtn" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              Parar
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <div class="text-sm text-slate-400">Workspace atual</div>
+          <div id="workspaceId" class="mt-2 text-xs break-all font-mono text-slate-200"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+      <div class="px-4 py-3 border-b border-slate-800 bg-slate-900 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div class="font-semibold text-slate-200">Buscadores configuráveis</div>
+          <div class="text-xs text-slate-400 mt-1">Edite as URLs com <span class="font-mono">{query}</span> e ative um ou mais buscadores para cada pesquisa.</div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button id="enableAllProvidersBtn" class="text-sm px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">Ativar todos</button>
+          <button id="disableAllProvidersBtn" class="text-sm px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">Desativar todos</button>
+          <button id="resetProvidersBtn" class="text-sm px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">Restaurar padrão</button>
+        </div>
+      </div>
+      <div id="providersContainer" class="p-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3"></div>
+    </div>
+
+    <div class="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr]">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+        <div class="px-4 py-3 border-b border-slate-800 bg-slate-900 flex items-center justify-between">
+          <div>
+            <div class="font-semibold text-slate-200">Console em tempo real</div>
+            <div class="text-xs text-slate-400 mt-1">Cada linha mostra a pesquisa, status e progresso estimado com base nos links encontrados.</div>
+          </div>
+          <button
+            id="clearConsoleBtn"
+            class="text-sm px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200"
+          >
+            Limpar
+          </button>
+        </div>
+        <div
+          id="console"
+          class="h-[520px] overflow-y-auto p-4 font-mono text-sm bg-black text-slate-300 whitespace-pre-wrap"
+        ></div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+        <div class="px-4 py-3 border-b border-slate-800 bg-slate-900 flex items-center justify-between">
+          <div>
+            <div class="font-semibold text-slate-200">Fontes adicionadas</div>
+            <div class="text-xs text-slate-400 mt-1">As fontes ficam agrupadas por pesquisa. Remover aqui também remove do PDF.</div>
+          </div>
+          <div class="text-xs text-slate-400">Agrupado por pesquisa</div>
+        </div>
+        <div id="sourcesList" class="h-[520px] overflow-y-auto p-4 space-y-4"></div>
+      </div>
+    </div>
+  </div>
+
+  <template id="providerCardTemplate">
+    <div class="border border-slate-800 rounded-2xl bg-slate-950 p-4 space-y-3">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="provider-name text-sm font-semibold text-slate-100"></div>
+          <a class="provider-homepage text-xs text-cyan-400 hover:underline break-all" target="_blank" rel="noopener noreferrer"></a>
+        </div>
+        <label class="inline-flex items-center gap-2 text-sm text-slate-300">
+          <input type="checkbox" class="provider-enabled h-4 w-4 rounded border-slate-700 bg-slate-900 text-cyan-400 focus:ring-cyan-400" />
+          Ativo
+        </label>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">URL de pesquisa</label>
+        <input type="text" class="provider-search-url w-full rounded-xl bg-slate-900 border border-slate-700 text-slate-100 px-3 py-2 outline-none focus:border-cyan-400" />
+      </div>
+    </div>
+  </template>
+
+  <script>
+    const promptInput = document.getElementById("prompt");
+    const generateBtn = document.getElementById("generateBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const newWorkspaceBtn = document.getElementById("newWorkspaceBtn");
+    const progressBar = document.getElementById("progressBar");
+    const sizeText = document.getElementById("sizeText");
+    const consoleEl = document.getElementById("console");
+    const statusBadge = document.getElementById("statusBadge");
+    const mergedCount = document.getElementById("mergedCount");
+    const clearConsoleBtn = document.getElementById("clearConsoleBtn");
+    const sourcesList = document.getElementById("sourcesList");
+    const workspaceIdEl = document.getElementById("workspaceId");
+    const maxResultsInput = document.getElementById("maxResults");
+    const providersContainer = document.getElementById("providersContainer");
+    const providerCardTemplate = document.getElementById("providerCardTemplate");
+    const enableAllProvidersBtn = document.getElementById("enableAllProvidersBtn");
+    const disableAllProvidersBtn = document.getElementById("disableAllProvidersBtn");
+    const resetProvidersBtn = document.getElementById("resetProvidersBtn");
+    const activeSearchPromptEl = document.getElementById("activeSearchPrompt");
+    const activeSearchStatusEl = document.getElementById("activeSearchStatus");
+    const activeSearchPercentEl = document.getElementById("activeSearchPercent");
+    const activeSearchProgressBar = document.getElementById("activeSearchProgressBar");
+    const activeSearchMetaEl = document.getElementById("activeSearchMeta");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const resumeBtn = document.getElementById("resumeBtn");
+    const stopBtn = document.getElementById("stopBtn");
+
+    let ws = null;
+    let keepAliveInterval = null;
+    let currentJobId = null;
+    let currentStatus = "idle";
+    let currentWorkspace = null;
+    let providerDefaults = [];
+    let providerState = [];
+    let searchIndex = new Map();
+
+    function getOrCreateWorkspaceId() {
+      const saved = localStorage.getItem("pdf_master_workspace_id");
+      if (saved) return saved;
+      const created = crypto.randomUUID();
+      localStorage.setItem("pdf_master_workspace_id", created);
+      return created;
+    }
+
+    function createNewWorkspaceId() {
+      const created = crypto.randomUUID();
+      localStorage.setItem("pdf_master_workspace_id", created);
+      return created;
+    }
+
+    function getProvidersStorageKey() {
+      return "pdf_master_search_providers";
+    }
+
+    function cloneProviders(list) {
+      return JSON.parse(JSON.stringify(list || []));
+    }
+
+    function saveProvidersToStorage() {
+      localStorage.setItem(getProvidersStorageKey(), JSON.stringify(providerState));
+    }
+
+    function loadProvidersFromStorage() {
+      try {
+        const raw = localStorage.getItem(getProvidersStorageKey());
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function mergeProviders(defaults, saved) {
+      if (!Array.isArray(saved) || saved.length === 0) {
+        return cloneProviders(defaults);
+      }
+
+      const savedMap = new Map(saved.map((item) => [item.id, item]));
+      return defaults.map((provider) => {
+        const match = savedMap.get(provider.id);
+        if (!match) return { ...provider };
+        return {
+          ...provider,
+          search_url_template: match.search_url_template || provider.search_url_template,
+          enabled: typeof match.enabled === "boolean" ? match.enabled : provider.enabled,
+          homepage: match.homepage || provider.homepage,
+          name: match.name || provider.name,
+        };
+      });
+    }
+
+    function ensureProvidersLoaded() {
+      if (!Array.isArray(providerState) || providerState.length === 0) {
+        providerState = cloneProviders(providerDefaults);
+      }
+    }
+
+    function getSearchStatusConfig(status) {
+      const map = {
+        idle: ["Pronto", "bg-slate-800 text-slate-200"],
+        running: ["Processando", "bg-cyan-950 text-cyan-300"],
+        paused: ["Pausado", "bg-amber-950 text-amber-300"],
+        stopping: ["Parando", "bg-rose-950 text-rose-300"],
+        stopped: ["Parado", "bg-rose-950 text-rose-300"],
+        completed: ["Concluído", "bg-emerald-950 text-emerald-300"],
+        error: ["Erro", "bg-rose-950 text-rose-300"],
+        discovering_links: ["Buscando links", "bg-indigo-950 text-indigo-300"],
+        queued: ["Na fila", "bg-slate-800 text-slate-200"],
+      };
+      return map[status] || [status || "Desconhecido", "bg-slate-800 text-slate-200"];
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function updateSearchIndex(searches = []) {
+      searchIndex = new Map();
+      for (const search of searches) {
+        searchIndex.set(search.id, search);
+      }
+    }
+
+    function getSearchById(searchId) {
+      return searchIndex.get(searchId) || null;
+    }
+
+    function appendLog(message, level = "info", meta = {}) {
+      const line = document.createElement("div");
+      const timestamp = new Date().toLocaleTimeString("pt-BR");
+      const search = meta.search_id ? getSearchById(meta.search_id) : null;
+      const status = search?.status || meta.status || "idle";
+      const progress = Number(search?.progress_percent || meta.progress_percent || 0).toFixed(0);
+
+      let colorClass = "text-slate-300";
+      if (level === "error") colorClass = "text-rose-400";
+      if (level === "warning") colorClass = "text-amber-400";
+      if (level === "success") colorClass = "text-emerald-400";
+
+      const label = search
+        ? `[${timestamp}] [${search.prompt.slice(0, 28)}${search.prompt.length > 28 ? "..." : ""}] [${status} ${progress}%]`
+        : `[${timestamp}]`;
+
+      line.className = `${colorClass} mb-1`;
+      line.textContent = `${label} ${message}`;
+      consoleEl.appendChild(line);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function setStatus(value) {
+      currentStatus = value;
+      const [label, classes] = getSearchStatusConfig(value);
+      statusBadge.className = `mt-2 inline-flex px-3 py-1 rounded-full text-sm font-medium ${classes}`;
+      statusBadge.textContent = label;
+
+      const isLocked = value === "running" || value === "paused";
+      generateBtn.disabled = isLocked;
+      generateBtn.classList.toggle("opacity-50", isLocked);
+      generateBtn.classList.toggle("cursor-not-allowed", isLocked);
+    }
+
+    function updateWorkspaceMeta(jobId) {
+      workspaceIdEl.textContent = jobId;
+    }
+
+    function renderProviders() {
+      ensureProvidersLoaded();
+      providersContainer.innerHTML = "";
+
+      for (const provider of providerState) {
+        const node = providerCardTemplate.content.firstElementChild.cloneNode(true);
+        const nameEl = node.querySelector(".provider-name");
+        const homepageEl = node.querySelector(".provider-homepage");
+        const enabledEl = node.querySelector(".provider-enabled");
+        const searchUrlEl = node.querySelector(".provider-search-url");
+
+        nameEl.textContent = provider.name;
+        homepageEl.textContent = provider.homepage;
+        homepageEl.href = provider.homepage;
+        enabledEl.checked = Boolean(provider.enabled);
+        searchUrlEl.value = provider.search_url_template || "";
+
+        enabledEl.addEventListener("change", (event) => {
+          provider.enabled = Boolean(event.target.checked);
+          saveProvidersToStorage();
+        });
+
+        searchUrlEl.addEventListener("input", (event) => {
+          provider.search_url_template = event.target.value;
+          saveProvidersToStorage();
+        });
+
+        providersContainer.appendChild(node);
+      }
+    }
+
+    function renderProviderSummary(summary = []) {
+      if (!Array.isArray(summary) || summary.length === 0) {
+        return `<div class="text-xs text-slate-500">Nenhum resumo de buscador disponível.</div>`;
+      }
+
+      return summary.map((item) => {
+        const statusClass = item.status === "ok"
+          ? "bg-emerald-950 text-emerald-300 border-emerald-900"
+          : "bg-amber-950 text-amber-300 border-amber-900";
+
+        return `
+          <div class="rounded-xl border ${statusClass} px-3 py-2">
+            <div class="flex items-center justify-between gap-3">
+              <div class="text-xs font-semibold">${escapeHtml(item.provider_name || item.provider_id || "Buscador")}</div>
+              <div class="text-[11px]">${Number(item.links_found || 0)} link(s)</div>
+            </div>
+            <div class="mt-1 text-[11px] opacity-90 break-all">${escapeHtml(item.search_url || "")}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderSourcesGrouped(searches) {
+      sourcesList.innerHTML = "";
+
+      if (!searches || searches.length === 0) {
+        sourcesList.innerHTML = `
+          <div class="text-sm text-slate-400 border border-dashed border-slate-700 rounded-xl p-4">
+            Nenhuma pesquisa adicionada ainda.
+          </div>
+        `;
+        return;
+      }
+
+      for (const search of searches) {
+        const [statusLabel, statusClasses] = getSearchStatusConfig(search.status);
+        const sourceCards = (search.sources || []).length
+          ? search.sources.map((source) => `
+              <div class="border border-slate-800 rounded-xl p-4 bg-slate-950">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="font-semibold text-slate-100 break-words">${escapeHtml(source.title || "Sem título")}</div>
+                    <div class="mt-1 text-xs text-slate-400 uppercase tracking-wide">${escapeHtml(source.kind || "web")} • ${Number(source.size_mb || 0).toFixed(2)} MB</div>
+                    <a
+                      href="${source.resolved_url}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="mt-2 block text-sm text-cyan-400 break-all hover:underline"
+                    >${escapeHtml(source.resolved_url)}</a>
+                  </div>
+                  <button
+                    class="remove-source-btn shrink-0 px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-sm font-medium"
+                    data-source-id="${source.id}"
+                  >
+                    Remover
+                  </button>
+                </div>
+              </div>
+            `).join("")
+          : `
+              <div class="border border-dashed border-slate-700 rounded-xl p-4 text-sm text-slate-400">
+                Nenhuma fonte persistida nesta pesquisa até agora.
+              </div>
+            `;
+
+        const card = document.createElement("div");
+        card.className = "border border-slate-800 rounded-2xl bg-slate-950 overflow-hidden";
+        card.innerHTML = `
+          <div class="px-4 py-4 border-b border-slate-800 bg-slate-900">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <div class="text-xs uppercase tracking-wide text-slate-400">Pesquisa</div>
+                <div class="mt-1 text-sm font-semibold text-slate-100 break-words">${escapeHtml(search.prompt)}</div>
+                <div class="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-400">
+                  <span class="px-2 py-1 rounded-full bg-slate-800 text-slate-200">${escapeHtml(statusLabel)}</span>
+                  <span class="px-2 py-1 rounded-full bg-slate-800 text-slate-300">${Number(search.progress_percent || 0).toFixed(0)}%</span>
+                  <span class="px-2 py-1 rounded-full bg-slate-800 text-slate-300">${search.processed_links || 0}/${search.total_links || 0} links</span>
+                  <span class="px-2 py-1 rounded-full bg-slate-800 text-slate-300">${search.added_count || 0} adicionada(s)</span>
+                </div>
+              </div>
+              <div class="inline-flex px-3 py-1 rounded-full text-xs font-medium ${statusClasses}">${escapeHtml(statusLabel)}</div>
+            </div>
+            <div class="mt-4 grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+              <div>
+                <div class="text-xs text-slate-400 mb-2">Resumo dos buscadores</div>
+                <div class="grid gap-2">${renderProviderSummary(search.providers_summary || [])}</div>
+              </div>
+              <div>
+                <div class="text-xs text-slate-400 mb-2">Mensagem atual</div>
+                <div class="rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 text-sm text-slate-300">${escapeHtml(search.current_message || "Sem mensagens.")}</div>
+              </div>
+            </div>
+          </div>
+          <div class="p-4 space-y-3">${sourceCards}</div>
+        `;
+
+        sourcesList.appendChild(card);
+      }
+
+      document.querySelectorAll(".remove-source-btn").forEach((btn) => {
+        btn.addEventListener("click", async (event) => {
+          const sourceId = event.currentTarget.dataset.sourceId;
+          await removeSource(sourceId);
+        });
+      });
+    }
+
+    function updateActiveSearch(search) {
+      if (!search) {
+        activeSearchPromptEl.textContent = "Nenhuma pesquisa ativa.";
+        activeSearchMetaEl.textContent = "0 / 0 links processados";
+        activeSearchPercentEl.textContent = "0%";
+        activeSearchProgressBar.style.width = "0%";
+        const [label, classes] = getSearchStatusConfig("idle");
+        activeSearchStatusEl.className = `inline-flex px-3 py-1 rounded-full text-xs font-medium ${classes}`;
+        activeSearchStatusEl.textContent = "Sem execução";
+        pauseBtn.disabled = true;
+        resumeBtn.disabled = true;
+        stopBtn.disabled = true;
+        return;
+      }
+
+      const [label, classes] = getSearchStatusConfig(search.status);
+      const percent = Math.min(Number(search.progress_percent || 0), 100);
+
+      activeSearchPromptEl.textContent = search.prompt || "Pesquisa ativa";
+      activeSearchMetaEl.textContent = `${search.processed_links || 0} / ${search.total_links || 0} links processados`;
+      activeSearchPercentEl.textContent = `${percent.toFixed(0)}%`;
+      activeSearchProgressBar.style.width = `${percent}%`;
+      activeSearchStatusEl.className = `inline-flex px-3 py-1 rounded-full text-xs font-medium ${classes}`;
+      activeSearchStatusEl.textContent = label;
+
+      pauseBtn.disabled = !(search.status === "running" || search.status === "discovering_links");
+      resumeBtn.disabled = search.status !== "paused";
+      stopBtn.disabled = !["running", "paused", "discovering_links", "stopping"].includes(search.status);
+    }
+
+    function updateWorkspaceState(data) {
+      currentWorkspace = data;
+      updateSearchIndex(data.searches || []);
+
+      const currentMb = Number(data.current_mb || 0);
+      const maxMb = Number(data.max_mb || 100);
+      const percent = Math.min((currentMb / maxMb) * 100, 100);
+
+      sizeText.textContent = `${currentMb.toFixed(2)} MB / ${maxMb.toFixed(0)} MB`;
+      progressBar.style.width = `${percent}%`;
+
+      mergedCount.textContent = String(data.merged_files || 0);
+      renderSourcesGrouped(data.searches || []);
+      updateActiveSearch(data.active_search || null);
+
+      if (data.download_url) {
+        downloadBtn.href = data.download_url;
+        downloadBtn.classList.remove("hidden");
+      } else {
+        downloadBtn.classList.add("hidden");
+        downloadBtn.removeAttribute("href");
+      }
+
+      if (data.status) {
+        setStatus(data.status);
+      }
+    }
+
+    function resetUiForNewWorkspace() {
+      consoleEl.innerHTML = "";
+      sizeText.textContent = "0 MB / 100 MB";
+      progressBar.style.width = "0%";
+      mergedCount.textContent = "0";
+      downloadBtn.classList.add("hidden");
+      downloadBtn.removeAttribute("href");
+      renderSourcesGrouped([]);
+      updateActiveSearch(null);
+      setStatus("idle");
+    }
+
+    function getWsUrl(jobId) {
+      const protocol = location.protocol === "https:" ? "wss" : "ws";
+      return `${protocol}://${location.host}/ws/${jobId}`;
+    }
+
+    async function connectWebSocket(jobId) {
+      return new Promise((resolve, reject) => {
+        try {
+          if (keepAliveInterval) {
+            clearInterval(keepAliveInterval);
+            keepAliveInterval = null;
+          }
+
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close();
+          }
+
+          ws = new WebSocket(getWsUrl(jobId));
+
+          ws.onopen = () => {
+            appendLog("Canal WebSocket conectado.", "success");
+            keepAliveInterval = setInterval(() => {
+              if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send("ping");
+              }
+            }, 15000);
+            resolve();
+          };
+
+          ws.onerror = () => {
+            reject(new Error("Falha ao conectar WebSocket."));
+          };
+
+          ws.onclose = () => {
+            appendLog("Canal WebSocket encerrado.");
+            if (keepAliveInterval) {
+              clearInterval(keepAliveInterval);
+              keepAliveInterval = null;
+            }
+          };
+
+          ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.event === "log") {
+              appendLog(data.message, data.level || "info", data);
+            }
+
+            if (data.event === "status") {
+              setStatus(data.value || "idle");
+            }
+
+            if (data.event === "workspace_state") {
+              updateWorkspaceState(data);
+            }
+
+            if (data.event === "search_state" && data.search) {
+              const allSearches = currentWorkspace?.searches ? [...currentWorkspace.searches] : [];
+              const existingIndex = allSearches.findIndex((item) => item.id === data.search.id);
+              if (existingIndex >= 0) {
+                allSearches[existingIndex] = data.search;
+              } else {
+                allSearches.unshift(data.search);
+              }
+              updateSearchIndex(allSearches);
+              if (currentWorkspace) {
+                currentWorkspace.searches = allSearches;
+                if (currentWorkspace.active_search?.id === data.search.id || data.search.is_active) {
+                  currentWorkspace.active_search = data.search;
+                }
+              }
+              updateActiveSearch((currentWorkspace && currentWorkspace.active_search) || data.search);
+            }
+
+            if (data.event === "batch_done") {
+              appendLog(
+                `Pesquisa concluída. ${data.added_count || 0} nova(s) fonte(s). PDF atual: ${Number(data.current_mb || 0).toFixed(2)}MB`,
+                "success",
+                data
+              );
+            }
+
+            if (data.event === "source_removed") {
+              appendLog("Fonte removida e PDF reconstruído.", "warning", data);
+            }
+
+            if (data.event === "error") {
+              appendLog(data.message || "Erro desconhecido.", "error", data);
+            }
+          };
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
+
+    async function fetchProviders() {
+      const response = await fetch("/api/providers/defaults");
+      const data = await response.json();
+      providerDefaults = Array.isArray(data.providers) ? data.providers : [];
+      providerState = mergeProviders(providerDefaults, loadProvidersFromStorage());
+      saveProvidersToStorage();
+      renderProviders();
+    }
+
+    async function fetchWorkspaceState() {
+      const response = await fetch(`/api/workspace/${currentJobId}`);
+      const data = await response.json();
+      updateWorkspaceMeta(currentJobId);
+      updateWorkspaceState(data);
+    }
+
+    function getConfiguredProviders() {
+      ensureProvidersLoaded();
+      const providers = providerState.map((provider) => ({ ...provider }));
+      const enabled = providers.filter((provider) => provider.enabled);
+
+      if (enabled.length === 0) {
+        throw new Error("Ative pelo menos um buscador antes de iniciar.");
+      }
+
+      for (const provider of enabled) {
+        if (!provider.search_url_template || !provider.search_url_template.includes("{query}")) {
+          throw new Error(`O buscador ${provider.name} precisa conter {query} na URL de pesquisa.`);
+        }
+      }
+
+      return providers;
+    }
+
+    async function startBatch() {
+      const prompt = promptInput.value.trim();
+      const maxResults = Number(maxResultsInput.value || 12);
+
+      if (!prompt) {
+        appendLog("Digite um tema antes de iniciar.", "warning");
+        return;
+      }
+
+      if (currentStatus === "running" || currentStatus === "paused") {
+        appendLog("Aguarde a pesquisa atual terminar ou parar antes de iniciar outra.", "warning");
+        return;
+      }
+
+      let providers;
+      try {
+        providers = getConfiguredProviders();
+      } catch (err) {
+        appendLog(err.message || "Configuração inválida de buscadores.", "error");
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/generate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            job_id: currentJobId,
+            prompt,
+            max_results: maxResults,
+            search_providers: providers,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Falha ao iniciar o processamento.");
+        }
+
+        appendLog("Nova pesquisa iniciada com sucesso.", "success", { search_id: data.search_id });
+        await fetchWorkspaceState();
+      } catch (err) {
+        appendLog(err.message || "Erro ao iniciar a pesquisa.", "error");
+      }
+    }
+
+    async function removeSource(sourceId) {
+      if (currentStatus === "running" || currentStatus === "paused") {
+        appendLog("Aguarde a execução terminar para remover uma fonte.", "warning");
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/source/${currentJobId}/${sourceId}`, {
+          method: "DELETE",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Falha ao remover a fonte.");
+        }
+
+        await fetchWorkspaceState();
+      } catch (err) {
+        appendLog(err.message || "Erro ao remover fonte.", "error");
+      }
+    }
+
+    async function controlActiveSearch(action) {
+      const activeSearch = currentWorkspace?.active_search;
+      if (!activeSearch?.id) {
+        appendLog("Nenhuma pesquisa ativa encontrada.", "warning");
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/search/${currentJobId}/${activeSearch.id}/${action}`, {
+          method: "POST",
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.detail || `Falha ao ${action} a pesquisa.`);
+        }
+        appendLog(`Comando '${action}' enviado para a pesquisa ativa.`, action === "stop" ? "warning" : "success", { search_id: activeSearch.id });
+        await fetchWorkspaceState();
+      } catch (err) {
+        appendLog(err.message || `Erro ao ${action} a pesquisa.`, "error", { search_id: activeSearch.id });
+      }
+    }
+
+    async function switchToWorkspace(jobId, clearUi = false) {
+      currentJobId = jobId;
+      updateWorkspaceMeta(currentJobId);
+
+      if (clearUi) {
+        resetUiForNewWorkspace();
+      }
+
+      await connectWebSocket(currentJobId);
+      await fetchWorkspaceState();
+    }
+
+    generateBtn.addEventListener("click", startBatch);
+    clearConsoleBtn.addEventListener("click", () => {
+      consoleEl.innerHTML = "";
+    });
+
+    newWorkspaceBtn.addEventListener("click", async () => {
+      const newId = createNewWorkspaceId();
+      appendLog(`Novo workspace criado: ${newId}`, "success");
+      await switchToWorkspace(newId, true);
+    });
+
+    enableAllProvidersBtn.addEventListener("click", () => {
+      providerState = providerState.map((provider) => ({ ...provider, enabled: true }));
+      saveProvidersToStorage();
+      renderProviders();
+      appendLog("Todos os buscadores foram ativados.", "success");
+    });
+
+    disableAllProvidersBtn.addEventListener("click", () => {
+      providerState = providerState.map((provider) => ({ ...provider, enabled: false }));
+      saveProvidersToStorage();
+      renderProviders();
+      appendLog("Todos os buscadores foram desativados.", "warning");
+    });
+
+    resetProvidersBtn.addEventListener("click", () => {
+      providerState = cloneProviders(providerDefaults);
+      saveProvidersToStorage();
+      renderProviders();
+      appendLog("Buscadores restaurados para o padrão.", "success");
+    });
+
+    pauseBtn.addEventListener("click", () => controlActiveSearch("pause"));
+    resumeBtn.addEventListener("click", () => controlActiveSearch("resume"));
+    stopBtn.addEventListener("click", () => controlActiveSearch("stop"));
+
+    window.addEventListener("load", async () => {
+      await fetchProviders();
+      const savedJobId = getOrCreateWorkspaceId();
+      await switchToWorkspace(savedJobId, true);
+    });
+  </script>
+</body>
+</html>
